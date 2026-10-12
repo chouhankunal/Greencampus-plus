@@ -2,3 +2,10 @@
 __pycache__/
 *.py[cod]
 instance/
+
+
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.env
