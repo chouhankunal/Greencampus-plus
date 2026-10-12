@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Impact calculator · GreenCampus Plus{% endblock %}
+{% block page_title %}Impact calculator{% endblock %}
+{% block content %}
+<section class="welcome-row">
+  <div><p class="section-kicker">COMPARE TWO PERIODS</p><p class="welcome-copy">See how recorded resource totals changed between date ranges.</p></div>
+</section>
+<section class="panel impact-panel">
+  <div class="panel-heading"><div><p class="section-kicker">PERIOD COMPARISON</p><h2>Choose two date ranges</h2></div><span class="form-step">%</span></div>
+  <p class="panel-description">Changes are calculated from the records in each range and selected source. Choose DATASET to keep the workbook separate from DEMO or SIMULATED readings. Comparisons with a zero starting value are shown as unavailable.</p>
+  <form method="post" class="period-form">
+    <label class="impact-source">Record source
+      <select name="source_type">
+        <option value="" {{ 'selected' if not source_type else '' }}>All sources (combined)</option>
+        {% for source in ('MEASURED', 'DEMO', 'SIMULATED', 'DATASET') %}<option value="{{ source }}" {{ 'selected' if source_type == source else '' }}>{{ source }}</option>{% endfor %}
+      </select>
+    </label>
+    <div class="period-group"><h3><span>01</span> First period</h3><div class="form-row"><label>From<input type="date" name="period_one_start" value="{{ periods[0] }}" required></label><label>To<input type="date" name="period_one_end" value="{{ periods[1] }}" required></label></div></div>
+    <div class="period-group"><h3><span>02</span> Second period</h3><div class="form-row"><label>From<input type="date" name="period_two_start" value="{{ periods[2] }}" required></label><label>To<input type="date" name="period_two_end" value="{{ periods[3] }}" required></label></div></div>
+    <button class="button button-primary" type="submit">Compare periods <span>→</span></button>
+  </form>
+  {% if results is not none %}
+  <div class="comparison-results"><div class="result-heading"><div><p class="section-kicker">YOUR COMPARISON</p><h2>Recorded resource totals</h2></div><span class="estimate-tag">BASED ON RECORDED DATA</span></div>
+    <div class="comparison-grid">
+    {% for kind, resource in resources.items() %}
+      {% set result = results[kind] %}
+      <article class="comparison-card">
+        <span class="comparison-resource icon-{{ kind }}">{{ resource.label }}</span>
+        <div class="comparison-values"><div><small>FIRST PERIOD</small><strong>{{ "{:,.1f}".format(result.previous) }} <small>{{ resource.unit }}</small></strong></div><span>→</span><div><small>SECOND PERIOD</small><strong>{{ "{:,.1f}".format(result.current) }} <small>{{ resource.unit }}</small></strong></div></div>
+        {% if result.change is none %}<div class="change-pill neutral">Change unavailable (first period is zero)</div>
+        {% elif result.change < 0 %}<div class="change-pill lower">{{ "{:,.1f}".format(result.change|abs) }}% decrease</div>
+        {% elif result.change > 0 %}<div class="change-pill higher">{{ "{:,.1f}".format(result.change) }}% increase</div>
+        {% else %}<div class="change-pill neutral">No change</div>{% endif %}
+      </article>
+    {% endfor %}
+    </div>
+    <p class="impact-disclaimer">This is a comparison of recorded quantities, not a verified environmental impact estimate. {% if source_type %}Only {{ source_type }} entries are included.{% else %}All sources (MEASURED, DEMO, SIMULATED, and DATASET) are combined when dates match; compare like-for-like data where possible.{% endif %} DATASET entries use historical workbook dates and are not independently verified.</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

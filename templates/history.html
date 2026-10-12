@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Resource history · GreenCampus Plus{% endblock %}
+{% block page_title %}Resource history{% endblock %}
+{% block content %}
+<section class="welcome-row">
+  <div><p class="section-kicker">MEASURE, REVIEW, IMPROVE</p><p class="welcome-copy">Browse campus measurements and filter down to what you need.</p></div>
+  <a class="button button-secondary" href="{{ url_for('dashboard') }}#add-record">＋ Add a record</a>
+</section>
+<section class="panel history-panel">
+  <form class="filter-form" method="get" action="{{ url_for('history') }}">
+    <label>Resource<select name="resource_type"><option value="">All resources</option>{% for kind, resource in resources.items() %}<option value="{{ kind }}" {{ 'selected' if filters.resource_type == kind else '' }}>{{ resource.label }}</option>{% endfor %}</select></label>
+    <label>Record source<select name="source_type"><option value="">All sources</option>{% for source in ('MEASURED', 'DEMO', 'SIMULATED', 'DATASET') %}<option value="{{ source }}" {{ 'selected' if filters.source_type == source else '' }}>{{ source }}</option>{% endfor %}</select></label>
+    <label>From<input type="date" name="start_date" value="{{ filters.start_date }}"></label>
+    <label>To<input type="date" name="end_date" value="{{ filters.end_date }}"></label>
+    <button class="button button-primary" type="submit">Apply filters</button>
+    <a class="clear-link" href="{{ url_for('history') }}">Clear</a>
+  </form>
+  <div class="table-summary"><strong>{{ records|length }} record{{ '' if records|length == 1 else 's' }}</strong><span>DEMO, SIMULATED, and DATASET sources are labeled separately from MEASURED entries.</span></div>
+  <div class="table-scroll"><table>
+    <thead><tr><th>RESOURCE</th><th>BUILDING / AREA</th><th>QUANTITY</th><th>DATE</th><th>NOTES</th><th>TYPE</th><th></th></tr></thead>
+    <tbody>
+      {% for record in records %}
+      <tr>
+        <td><span class="table-resource icon-{{ record.resource_type }}">{{ resources[record.resource_type].label }}</span></td>
+        <td>{{ record.building }}</td>
+        <td class="quantity-cell">{{ "{:,.1f}".format(record.quantity) }} {{ resources[record.resource_type].unit }}</td>
+        <td>{{ record.record_date }}</td>
+        <td class="notes-cell">{{ record.notes or '—' }}</td>
+        <td>
+          {% if record.source_type == 'DEMO' %}<span class="demo-tag">DEMO</span>
+          {% elif record.source_type == 'SIMULATED' %}<span class="simulated-tag">SIMULATED</span>
+          {% elif record.source_type == 'DATASET' %}<span class="dataset-tag">DATASET</span>
+          {% else %}<span class="real-tag">MEASURED</span>{% endif %}
+          {% if record.source_type == 'DATASET' %}
+          <details class="dataset-details">
+            <summary>{{ record.source_record_id or 'Dataset metadata' }}</summary>
+            <span>Day: {{ record.day_type or '—' }} · Occupancy: {{ record.occupancy_people if record.occupancy_people is not none else '—' }}</span>
+            <span>Renewable share: {{ record.renewable_energy_share_pct if record.renewable_energy_share_pct is not none else '—' }}% · Renewable energy: {{ record.renewable_energy_kwh if record.renewable_energy_kwh is not none else '—' }} kWh</span>
+            <span>Estimated CO₂: {{ record.estimated_co2_kg if record.estimated_co2_kg is not none else '—' }} kg · Energy status: {{ record.energy_status or '—' }} · Water status: {{ record.water_status or '—' }}</span>
+            <span>Suggested action: {{ record.suggested_action or '—' }}</span>
+          </details>
+          {% endif %}
+        </td>
+        <td><form action="{{ url_for('delete_record', record_id=record.id) }}" method="post" data-confirm="Delete this resource record? This cannot be undone."><button class="delete-button" type="submit" aria-label="Delete record from {{ record.building }}">Delete</button></form></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7"><div class="empty-state table-empty"><span>⌕</span><strong>No matching records</strong><p>Try changing the filters, or add a measurement.</p></div></td></tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

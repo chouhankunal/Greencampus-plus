@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f8f3">
+  <title>{% block title %}GreenCampus Plus{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="{{ url_for('dashboard') }}">
+        <span class="brand-mark">G</span>
+        <span>GreenCampus <small>PLUS</small></span>
+      </a>
+      <div class="nav-label">WORKSPACE</div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a class="{{ 'active' if request.endpoint == 'dashboard' else '' }}" href="{{ url_for('dashboard') }}"><span>▦</span> Overview</a>
+        <a class="{{ 'active' if request.endpoint == 'history' else '' }}" href="{{ url_for('history') }}"><span>◷</span> Resource history</a>
+        <a class="{{ 'active' if request.endpoint == 'impact' else '' }}" href="{{ url_for('impact') }}"><span>↗</span> Impact calculator</a>
+      </nav>
+      <div class="sidebar-note">
+        <span class="leaf-icon">✳</span>
+        <strong>Small steps,<br>lasting impact.</strong>
+        <p>Every data point helps build a more sustainable campus.</p>
+      </div>
+      <div class="sidebar-footer"><span class="status-dot"></span> Campus sustainability tracker</div>
+    </aside>
+    <main class="main-content">
+      <header class="topbar">
+        <div><span class="eyebrow">KAUSHAL 8.0 · SUSTAINABLE TECH</span><h1>{% block page_title %}Campus overview{% endblock %}</h1></div>
+        <div class="topbar-date">{{ today_display }}</div>
+      </header>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-stack" role="status">
+            {% for category, message in messages %}<div class="flash {{ category }}">{{ message }}<button type="button" aria-label="Dismiss message" onclick="this.parentElement.remove()">×</button></div>{% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+      <footer class="page-footer">Made for a greener campus <span>✳</span> Measurements are user-submitted; sample data is labeled.</footer>
+    </main>
+  </div>
+  <script>
+    document.querySelectorAll("[data-confirm]").forEach(function (form) {
+      form.addEventListener("submit", function (event) {
+        if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+      });
+    });
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

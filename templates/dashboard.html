@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+{% block title %}Overview · GreenCampus Plus{% endblock %}
+{% block page_title %}Campus overview{% endblock %}
+{% block content %}
+<section class="welcome-row">
+  <div><p class="section-kicker">YOUR CAMPUS, AT A GLANCE</p><p class="welcome-copy">Track today's habits. Shape tomorrow's campus.</p></div>
+  <div class="welcome-actions">
+    <form action="{{ url_for('import_dataset') }}" method="post">
+      <button class="button button-secondary" type="submit">Import workbook dataset</button>
+    </form>
+    <form action="{{ url_for('load_demo_data') }}" method="post">
+      <button class="button button-secondary" type="submit">＋ Load demo data</button>
+    </form>
+  </div>
+</section>
+{% if sample_count %}
+<div class="sample-banner"><span>ⓘ</span><div><strong>Demo data is included</strong><p>{{ sample_count }} sample records are labeled “DEMO” throughout the app. They are illustrative, not real campus measurements.</p></div></div>
+{% endif %}
+{% if dataset_count %}
+<div class="dataset-banner"><span>▤</span><div><strong>Imported dataset · historical, unverified source</strong><p>{{ dataset_count }} DATASET resource entries are from the bundled workbook and use its recorded dates. They are clearly labeled and should not be represented as verified live campus measurements.</p></div></div>
+{% endif %}
+<section class="panel autopilot-panel" id="autopilot">
+  <div class="panel-heading">
+    <div><p class="section-kicker">SIMULATED CAMPUS MONITORING</p><h2>GreenCampus AutoPilot</h2></div>
+    <span class="autopilot-status {{ 'is-running' if autopilot_status.running else '' }}" id="autopilotStatus">
+      <span class="status-dot"></span><span id="autopilotStatusText">{{ 'Monitoring' if autopilot_status.running else 'Stopped' }}</span>
+    </span>
+  </div>
+  <p class="panel-description">AutoPilot generates simulated readings for demonstration only—not physical sensor data. A batch with one electricity, water, and waste reading is saved every 30 seconds while monitoring is on.</p>
+  <div class="autopilot-controls">
+    <label for="autopilotBuilding">Building or area
+      <select id="autopilotBuilding" {% if autopilot_status.running %}disabled{% endif %}>
+        {% for building in buildings %}<option value="{{ building }}" {{ 'selected' if autopilot_status.building == building else '' }}>{{ building }}</option>{% endfor %}
+      </select>
+    </label>
+    <button class="button button-primary" id="autopilotStart" type="button" {% if autopilot_status.running %}disabled{% endif %}>Start Monitoring</button>
+    <button class="button button-secondary" id="autopilotStop" type="button" {% if not autopilot_status.running %}disabled{% endif %}>Stop Monitoring</button>
+    <span class="autopilot-countdown" id="autopilotCountdown" aria-live="polite">
+      {% if autopilot_status.running %}Next simulated batch in {{ autopilot_status.seconds_until_batch }}s{% else %}No readings will be generated while stopped{% endif %}
+    </span>
+  </div>
+  <div class="autopilot-alerts" id="autopilotAlerts" aria-live="polite">
+    <strong>AutoPilot alerts</strong>
+    <p class="autopilot-alert-empty" id="autopilotAlertEmpty">Threshold alerts for new simulated readings will appear here.</p>
+    <ul id="autopilotAlertList"></ul>
+  </div>
+</section>
+<section class="metrics-grid" aria-label="Campus resource totals">
+  {% for kind, resource in resources.items() %}
+  <article class="metric-card metric-{{ kind }}">
+    <div class="metric-head"><span class="metric-icon">{{ '⚡' if kind == 'electricity' else '◉' if kind == 'water' else '♻' }}</span><span class="metric-period">ALL RECORDS</span></div>
+    <p class="metric-label">{{ resource.label }} consumption</p>
+    <div class="metric-value" data-resource-total="{{ kind }}">{{ "{:,.1f}".format(totals[kind]) }} <span>{{ resource.unit }}</span></div>
+    <div class="metric-foot"><span class="mini-dot"></span> Recorded total</div>
+  </article>
+  {% endfor %}
+  <article class="metric-card metric-score">
+    <div class="metric-head"><span class="metric-icon">✳</span><span class="metric-period">RULE-BASED</span></div>
+    <p class="metric-label">Sustainability score</p>
+    <div class="metric-value" data-score-total>{{ score }}<span>/100</span></div>
+    <div class="metric-foot">Based on records below alert thresholds</div>
+  </article>
+</section>
+<div class="dashboard-grid">
+  <section class="panel chart-panel">
+    <div class="panel-heading"><div><p class="section-kicker">RESOURCE TRENDS</p><h2>Usage over time</h2></div><span class="quiet-badge">Daily totals</span></div>
+    <div class="chart-wrap"><canvas id="usageChart" aria-label="Daily resource usage chart" role="img" {% if not chart_data.labels %}hidden{% endif %}></canvas><div class="empty-chart" id="chartEmpty" {% if chart_data.labels %}hidden{% endif %}><span>⌁</span><strong>Your chart starts here</strong><p>Add a record or load demo data to see resource usage trends.</p></div></div>
+    <div class="chart-legend"><span><i class="legend-electricity"></i> Electricity · kWh</span><span><i class="legend-water"></i> Water · L</span><span><i class="legend-waste"></i> Waste · kg</span></div>
+    <p class="chart-disclaimer">Chart totals can include MEASURED, DEMO, SIMULATED, and DATASET readings. Dataset rows use the workbook's historical dates.</p>
+  </section>
+  <section class="panel score-panel">
+    <div class="panel-heading"><div><p class="section-kicker">CAMPUS SNAPSHOT</p><h2>Saving opportunities</h2></div><span class="opportunity-count" id="recommendationCount">{{ recommendations|length }}</span></div>
+    <p class="panel-description">Practical next steps based on the resources recorded so far.</p>
+    <div class="recommendation-list" id="recommendationList">
+      {% for title, suggestion in recommendations %}
+      <div class="recommendation"><span class="recommendation-icon">{{ '⚡' if title == 'Electricity' else '◉' if title == 'Water' else '♻' if title == 'Waste' else '✳' }}</span><div><strong>{{ title }}</strong><p>{{ suggestion }}</p></div></div>
+      {% endfor %}
+    </div>
+    <div class="score-explainer"><strong>How is the score calculated?</strong><p>Starts at 100 and subtracts 100 ÷ record count for each record over its resource's fixed alert threshold. It is a simple engagement indicator—not a verified environmental rating.</p></div>
+  </section>
+</div>
+{% if alerts %}
+<section class="panel alerts-panel">
+  <div class="panel-heading"><div><p class="section-kicker">NEEDS A CLOSER LOOK</p><h2>Resource alerts <span class="alert-count">{{ alerts|length }}</span></h2></div></div>
+  <p class="panel-description">A record triggers an alert when its single-entry quantity is above its fixed threshold. The thresholds are basic demo rules, not campus-specific targets.</p>
+  <div class="alert-list">
+    {% for alert in alerts %}
+    <div class="alert-row"><span class="alert-symbol">!</span><div><strong>{{ alert.resource.label }} is above the alert threshold</strong><p>{{ alert.record.building }} recorded {{ "{:,.1f}".format(alert.record.quantity) }} {{ alert.resource.unit }} on {{ alert.record.record_date }}. The threshold is {{ "{:,.1f}".format(alert.threshold) }} {{ alert.resource.unit }} per record.{% if alert.record.source_type == 'DEMO' %} <b>DEMO</b>{% elif alert.record.source_type == 'SIMULATED' %} <b>SIMULATED</b>{% elif alert.record.source_type == 'DATASET' %} <b>DATASET</b>{% endif %} Suggested action: {{ alert.action }}</p></div></div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+<div class="lower-grid">
+  <section class="panel" id="add-record">
+    <div class="panel-heading"><div><p class="section-kicker">LOG A MEASUREMENT</p><h2>Add resource record</h2></div><span class="form-step">01</span></div>
+    <form class="record-form" action="{{ url_for('add_record') }}" method="post" id="recordForm">
+      <label>Building or area<select name="building" required><option value="">Choose a location</option>{% for building in buildings %}<option value="{{ building }}">{{ building }}</option>{% endfor %}</select></label>
+      <div class="form-row">
+        <label>Resource type<select name="resource_type" required><option value="">Choose a resource</option>{% for kind, resource in resources.items() %}<option value="{{ kind }}">{{ resource.label }} ({{ resource.unit }})</option>{% endfor %}</select></label>
+        <label>Quantity<input name="quantity" type="number" min="0.01" max="999999999" step="any" placeholder="e.g. 250" required></label>
+      </div>
+      <div class="form-row">
+        <label>Measurement date<input name="record_date" type="date" max="{{ today }}" value="{{ today }}" required></label>
+        <label>Notes <span class="optional-label">OPTIONAL</span><input name="notes" type="text" maxlength="500" placeholder="Add a short note"></label>
+      </div>
+      <button class="button button-primary" type="submit">Save resource record <span>→</span></button>
+      <p class="form-help">Quantities use the selected resource's unit. Only real measurements should be entered here.</p>
+    </form>
+  </section>
+  <section class="panel recent-panel">
+    <div class="panel-heading"><div><p class="section-kicker">LATEST ACTIVITY</p><h2>Recent records</h2></div><a class="text-link" href="{{ url_for('history') }}">View all <span>→</span></a></div>
+    {% if records %}
+    <div class="recent-list" id="recentRecords">
+      {% for record in records %}
+      <div class="recent-row"><span class="recent-icon icon-{{ record.resource_type }}">{{ '⚡' if record.resource_type == 'electricity' else '◉' if record.resource_type == 'water' else '♻' }}</span><div class="recent-main"><strong>{{ resources[record.resource_type].label }}{% if record.source_type == 'DEMO' %} <span class="demo-tag">DEMO</span>{% elif record.source_type == 'SIMULATED' %} <span class="simulated-tag">SIMULATED</span>{% elif record.source_type == 'DATASET' %} <span class="dataset-tag">DATASET</span>{% endif %}</strong><small>{{ record.building }} · {{ record.record_date }}{% if record.source_type == 'DATASET' and record.source_record_id %} · {{ record.source_record_id }}{% endif %}</small></div><span class="recent-amount">{{ "{:,.1f}".format(record.quantity) }}<small>{{ resources[record.resource_type].unit }}</small></span></div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" id="recentEmpty"><span>◷</span><strong>No records yet</strong><p>Your saved measurements will appear here.</p></div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const chartData = {{ chart_data|tojson }};
+  let usageChart = null;
+  if (chartData.labels.length && typeof Chart !== "undefined") {
+    usageChart = new Chart(document.getElementById("usageChart"), {
+    type: "line",
+    data: {
+      labels: chartData.labels,
+      datasets: [
+        { label: "Electricity · kWh", data: chartData.series.electricity, borderColor: "#26764b", backgroundColor: "#26764b", tension: 0.35, borderWidth: 2, pointRadius: 3 },
+        { label: "Water · L", data: chartData.series.water, borderColor: "#4b9dd0", backgroundColor: "#4b9dd0", tension: 0.35, borderWidth: 2, pointRadius: 3 },
+        { label: "Waste · kg", data: chartData.series.waste, borderColor: "#d4a447", backgroundColor: "#d4a447", tension: 0.35, borderWidth: 2, pointRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: "#89958d", maxTicksLimit: 8 } },
+        y: { beginAtZero: true, grid: { color: "#edf1ec" }, ticks: { color: "#89958d" } }
+      }
+    }
+    });
+  }
+</script>
+<script>
+  (function () {
+    const resources = {{ resources|tojson }};
+    const statusUrl = {{ url_for('autopilot_status')|tojson }};
+    const startUrl = {{ url_for('start_autopilot')|tojson }};
+    const stopUrl = {{ url_for('stop_autopilot')|tojson }};
+    const tickUrl = {{ url_for('autopilot_tick')|tojson }};
+    const statusPill = document.getElementById("autopilotStatus");
+    const statusText = document.getElementById("autopilotStatusText");
+    const buildingSelect = document.getElementById("autopilotBuilding");
+    const startButton = document.getElementById("autopilotStart");
+    const stopButton = document.getElementById("autopilotStop");
+    const countdown = document.getElementById("autopilotCountdown");
+    const alertList = document.getElementById("autopilotAlertList");
+    const alertEmpty = document.getElementById("autopilotAlertEmpty");
+    const renderedAlertIds = new Set();
+    let pollInProgress = false;
+
+    function setMonitoringStatus(status) {
+      statusPill.classList.toggle("is-running", status.running);
+      statusText.textContent = status.running ? "Monitoring" : "Stopped";
+      buildingSelect.disabled = status.running;
+      startButton.disabled = status.running;
+      stopButton.disabled = !status.running;
+      countdown.textContent = status.running
+        ? "Next simulated batch in " + status.seconds_until_batch + "s"
+        : "No readings will be generated while stopped";
+    }
+
+    function renderRecords(records) {
+      let list = document.getElementById("recentRecords");
+      if (!records.length) {
+        if (list) list.remove();
+        if (!document.getElementById("recentEmpty")) {
+          const empty = document.createElement("div");
+          empty.className = "empty-state";
+          empty.id = "recentEmpty";
+          empty.innerHTML = "<span>◷</span><strong>No records yet</strong><p>Your saved measurements will appear here.</p>";
+          document.querySelector(".recent-panel").appendChild(empty);
+        }
+        return;
+      }
+      if (!list) {
+        const empty = document.getElementById("recentEmpty");
+        list = document.createElement("div");
+        list.className = "recent-list";
+        list.id = "recentRecords";
+        if (empty) empty.replaceWith(list);
+        else document.querySelector(".recent-panel").appendChild(list);
+      }
+      list.replaceChildren();
+      records.forEach(function (record) {
+        const row = document.createElement("div");
+        row.className = "recent-row";
+        const icon = document.createElement("span");
+        icon.className = "recent-icon icon-" + record.resource_type;
+        icon.textContent = record.resource_type === "electricity" ? "⚡" : record.resource_type === "water" ? "◉" : "♻";
+        const main = document.createElement("div");
+        main.className = "recent-main";
+        const title = document.createElement("strong");
+        title.textContent = resources[record.resource_type].label + " ";
+        if (record.source_type !== "MEASURED") {
+          const tag = document.createElement("span");
+          tag.className = record.source_type === "DEMO" ? "demo-tag" : record.source_type === "DATASET" ? "dataset-tag" : "simulated-tag";
+          tag.textContent = record.source_type;
+          title.appendChild(tag);
+        }
+        const detail = document.createElement("small");
+        detail.textContent = record.building + " · " + record.record_date;
+        main.append(title, detail);
+        const amount = document.createElement("span");
+        amount.className = "recent-amount";
+        amount.textContent = Number(record.quantity).toLocaleString(undefined, { maximumFractionDigits: 1 }) + " ";
+        const unit = document.createElement("small");
+        unit.textContent = resources[record.resource_type].unit;
+        amount.appendChild(unit);
+        row.append(icon, main, amount);
+        list.appendChild(row);
+      });
+    }
+
+    function renderSnapshot(snapshot) {
+      Object.keys(snapshot.totals).forEach(function (kind) {
+        const total = document.querySelector('[data-resource-total="' + kind + '"]');
+        if (total) {
+          total.textContent = Number(snapshot.totals[kind]).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " " + resources[kind].unit;
+        }
+      });
+      const score = document.querySelector("[data-score-total]");
+      if (score) score.textContent = snapshot.score + "/100";
+      const recommendationList = document.getElementById("recommendationList");
+      recommendationList.replaceChildren();
+      snapshot.recommendations.forEach(function (recommendation) {
+        const item = document.createElement("div");
+        item.className = "recommendation";
+        const icon = document.createElement("span");
+        icon.className = "recommendation-icon";
+        icon.textContent = recommendation.title === "Electricity" ? "⚡" : recommendation.title === "Water" ? "◉" : recommendation.title === "Waste" ? "♻" : "✳";
+        const text = document.createElement("div");
+        const title = document.createElement("strong");
+        title.textContent = recommendation.title;
+        const suggestion = document.createElement("p");
+        suggestion.textContent = recommendation.suggestion;
+        text.append(title, suggestion);
+        item.append(icon, text);
+        recommendationList.appendChild(item);
+      });
+      document.getElementById("recommendationCount").textContent = snapshot.recommendations.length;
+      renderRecords(snapshot.records);
+      const canvas = document.getElementById("usageChart");
+      const empty = document.getElementById("chartEmpty");
+      if (snapshot.chart_data.labels.length) {
+        canvas.hidden = false;
+        empty.hidden = true;
+        if (typeof Chart !== "undefined") {
+          if (!usageChart) {
+            usageChart = new Chart(canvas, {
+              type: "line",
+              data: {
+                labels: snapshot.chart_data.labels,
+                datasets: [
+                  { label: "Electricity · kWh", data: snapshot.chart_data.series.electricity, borderColor: "#26764b", backgroundColor: "#26764b", tension: 0.35, borderWidth: 2, pointRadius: 3 },
+                  { label: "Water · L", data: snapshot.chart_data.series.water, borderColor: "#4b9dd0", backgroundColor: "#4b9dd0", tension: 0.35, borderWidth: 2, pointRadius: 3 },
+                  { label: "Waste · kg", data: snapshot.chart_data.series.waste, borderColor: "#d4a447", backgroundColor: "#d4a447", tension: 0.35, borderWidth: 2, pointRadius: 3 }
+                ]
+              },
+              options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: "#89958d", maxTicksLimit: 8 } }, y: { beginAtZero: true, grid: { color: "#edf1ec" }, ticks: { color: "#89958d" } } } }
+            });
+          } else {
+            usageChart.data.labels = snapshot.chart_data.labels;
+            usageChart.data.datasets.forEach(function (dataset, index) {
+              dataset.data = snapshot.chart_data.series[["electricity", "water", "waste"][index]];
+            });
+            usageChart.update("none");
+          }
+        }
+      } else if (usageChart) {
+        usageChart.data.labels = [];
+        usageChart.data.datasets.forEach(function (dataset) { dataset.data = []; });
+        usageChart.update("none");
+        canvas.hidden = true;
+        empty.hidden = false;
+      } else {
+        canvas.hidden = true;
+        empty.hidden = false;
+      }
+    }
+
+    function renderAlerts(alerts) {
+      alerts.forEach(function (alert) {
+        if (renderedAlertIds.has(alert.id)) return;
+        renderedAlertIds.add(alert.id);
+        const item = document.createElement("li");
+        const heading = document.createElement("strong");
+        heading.textContent = alert.resource + " SIMULATED reading is above threshold";
+        const description = document.createElement("p");
+        description.textContent = alert.building + " recorded " + Number(alert.quantity).toLocaleString() + " " + alert.unit + " (threshold " + Number(alert.threshold).toLocaleString() + " " + alert.unit + "). " + alert.action;
+        item.append(heading, description);
+        alertList.prepend(item);
+      });
+      alertEmpty.hidden = alertList.children.length > 0;
+    }
+
+    async function sendJson(url, body) {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body || {}),
+        cache: "no-store"
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "AutoPilot request failed.");
+      return data;
+    }
+
+    startButton.addEventListener("click", async function () {
+      startButton.disabled = true;
+      countdown.textContent = "Starting monitoring…";
+      try {
+        setMonitoringStatus(await sendJson(startUrl, { building: buildingSelect.value }));
+        await refresh();
+      } catch (error) {
+        countdown.textContent = error.message;
+        startButton.disabled = false;
+      }
+    });
+
+    stopButton.addEventListener("click", async function () {
+      stopButton.disabled = true;
+      try {
+        setMonitoringStatus(await sendJson(stopUrl, {}));
+      } catch (error) {
+        countdown.textContent = error.message;
+        stopButton.disabled = false;
+      }
+    });
+
+    async function refresh() {
+      if (pollInProgress) return;
+      pollInProgress = true;
+      try {
+        const data = await sendJson(tickUrl, {});
+        setMonitoringStatus(data.status);
+        renderSnapshot(data.snapshot);
+        renderAlerts(data.alerts);
+      } catch (error) {
+        countdown.textContent = "AutoPilot update failed: " + error.message;
+      } finally {
+        pollInProgress = false;
+      }
+    }
+
+    fetch(statusUrl, { cache: "no-store" })
+      .then(function (response) { if (!response.ok) throw new Error("Unable to load monitoring status."); return response.json(); })
+      .then(setMonitoringStatus)
+      .catch(function (error) { countdown.textContent = error.message; });
+    window.setInterval(refresh, 10000);
+  })();
+</script>
+{% endblock %}
