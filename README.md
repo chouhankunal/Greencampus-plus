@@ -1,60 +1,85 @@
-# GreenCampus Plus
+# 🌱 GreenCampus Plus
+### Campus Sustainability Intelligence
 
-A beginner-friendly campus sustainability tracker built with Flask, SQLite, HTML, CSS, and Chart.js. It helps a college record electricity, water, and waste measurements, spot unusually high single-record usage, and compare resource totals across two periods.
+**Making campus resource consumption visible, measurable, and actionable.**
 
-## Run on Windows
+GreenCampus Plus is a campus sustainability tracking web application built with **Python Flask, SQLite, HTML, CSS, and Chart.js**. It helps educational institutions monitor electricity, water, and waste consumption, identify unusually high resource usage, and compare consumption across different periods.
 
-1. Install Python 3.9 or newer and open this folder in VS Code.
-2. Open **Terminal → New Terminal** and run:
+The project demonstrates how a simple, data-driven system can help campuses make more informed resource-management decisions.
 
-   ```powershell
-   py -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   python -m pip install -r requirements.txt
-   python app.py
-   ```
+---
 
-   If PowerShell blocks activation, either run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in that terminal and activate again, or use the environment's interpreter explicitly:
+## 🎯 Problem Statement — KAUSHAL 8.0 | PS-04
 
-   ```powershell
-   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-   .\.venv\Scripts\python.exe app.py
-   ```
+### Sustainable Tech Without Limits
 
-3. Open the local address printed in the terminal (normally `http://127.0.0.1:5000`).
-4. Stop the server with **Ctrl+C**.
+Educational campuses consume substantial resources every day, including electricity, water, and materials. Without accessible consumption records and clear comparisons, excessive usage can go unnoticed, making it difficult to identify potential waste and prioritize corrective action.
 
-The SQLite database is created automatically at `instance/greencampus.db` the first time the app starts. Chart.js and the optional web fonts load from CDNs, so an internet connection is needed for those visual enhancements; the rest of the app runs locally.
+GreenCampus Plus addresses this challenge by providing a centralized dashboard for recording resource consumption, detecting unusually high readings, visualizing historical trends, and presenting practical sustainability recommendations.
 
-Keep `Campus_Sustainability_Dataset_1000 (1).xlsx` beside `app.py`, then use **Import workbook dataset** on the dashboard. The import is repeatable; the first run inserts eligible source rows and later runs skip already imported IDs.
+**Our goal:** Transform resource-consumption data into actionable insights that encourage responsible resource management.
 
-## Features
+## ✨ Key Features
 
-- Dashboard totals in kWh, litres, and kg; a daily Chart.js trend; recent records; and a simple rule-based sustainability score.
-- Record entry for a campus area, resource, quantity, date, and optional note. The server checks the input before saving it.
-- Searchable resource history with resource/date filters and confirmation before deletion.
-- Idempotent demo-data loading. Sample rows are marked **DEMO** and visibly identified so they are not confused with measurements.
-- Alerts for a single record above 1,000 kWh, 10,000 L, or 100 kg. These are simple fixed demonstration thresholds, not campus-specific targets; the alert states the threshold and reason.
-- Practical recommendations for resources with recorded consumption.
-- A period comparison that reports percentage increases/decreases from saved measurements. It does not convert usage into emissions or claim verified environmental savings.
-- GreenCampus AutoPilot can simulate a three-resource batch every 30 seconds for a selected building. Each reading is marked **SIMULATED**, stored separately from the existing **DEMO** flag, and is not real sensor data. Some readings deliberately exceed the existing thresholds to demonstrate alerts.
-- Import the bundled `Campus_Sustainability_Dataset_1000 (1).xlsx` with **Import workbook dataset** on the dashboard. Each source row becomes one DATASET electricity record (kWh), one water record (L), and one waste record (kg), retaining its historical date, building, Record_ID, occupancy, renewable energy, estimated CO₂ value, statuses, day type, and suggested action. Dataset readings are explicitly labeled, are not verified real campus measurements, and are never created by AutoPilot.
-- Re-importing is safe: a unique dataset Record_ID/resource key prevents duplicate resource entries. The dashboard reports source rows imported/skipped; incomplete or invalid rows are skipped with a few row-level explanations. Resource History can filter by source and reveal the preserved workbook metadata.
-- Impact comparisons can be filtered to a single source such as DATASET; the default combined view states that it combines sources.
+### 📊 Sustainability Dashboard
+- View electricity consumption in kWh, water consumption in litres, and waste generation in kilograms.
+- Visualize daily resource trends with interactive charts.
+- Review recent records and a rule-based sustainability engagement score.
+- Distinguish demonstration data from other recorded sources.
 
-The score starts at 100 and subtracts an equal share for each record that exceeds its resource threshold. It is an engagement indicator, not a scientific or verified sustainability rating. Resource totals aggregate saved records and can include MEASURED, DEMO, SIMULATED, and DATASET entries unless a source filter is selected.
+### ⚡ Resource Monitoring
+- Record resource usage by campus building or area.
+- Select a resource type, enter a quantity and date, and add optional notes.
+- Validate input before saving records.
+- Identify unusually high individual readings using configurable demonstration thresholds.
 
-AutoPilot monitoring state is stored in SQLite, so refreshing the dashboard does not create a second timer or reset the batch schedule. The open dashboard polls the server every 10 seconds; the server creates at most one batch when its 30-second deadline is reached. Leave the dashboard open for ongoing simulation. Stop Monitoring disables future batches.
+### 🚨 Waste Detection and Recommendations
+- Flag individual readings that exceed predefined thresholds.
+- Explain why each alert was triggered.
+- Provide practical recommendations for improving resource management.
+- Compare resource consumption across two periods.
 
-## Project structure
+### 📁 Historical Dataset Import
+- Import records from the bundled Excel workbook.
+- Preserve supported historical metadata, including building, date, occupancy, renewable energy, estimated CO₂ values, and suggested actions.
+- Track imported source records and skip duplicate imports using unique source-record/resource keys.
+- Filter history by data source.
+
+### 🔄 GreenCampus AutoPilot
+- Simulate periodic electricity, water, and waste readings for a selected building.
+- Generate a three-resource batch every 30 seconds while monitoring is active.
+- Persist monitoring state in SQLite to prevent duplicate timers after dashboard refreshes.
+- Mark simulated readings separately from demonstration, dataset, and measured records.
+
+**Note:** AutoPilot generates simulated readings; it does not connect to physical meters or IoT sensors.
+
+---
+
+## 🛠️ Technology Stack
+
+| Technology | Purpose |
+|---|---|
+| Python | Application logic and data processing |
+| Flask | Web framework and HTTP routes |
+| SQLite | Persistent resource records and monitoring state |
+| HTML5 | Dashboard structure |
+| CSS3 | Responsive interface styling |
+| JavaScript | Dynamic interactions and dashboard updates |
+| Chart.js | Resource-consumption visualizations |
+| Excel workbook | Historical demonstration dataset |
+
+Chart.js and optional web fonts are loaded from external CDNs. An internet connection is required for those enhancements.
+
+## 🏗️ Project Structure
 
 ```text
-greencampus-plus/
+GreenCampusPlus/
 ├── app.py
 ├── requirements.txt
 ├── README.md
 ├── Campus_Sustainability_Dataset_1000 (1).xlsx
-├── instance/                 # Created on first run; contains the SQLite database
+├── instance/
+│   └── greencampus.db
 ├── static/
 │   └── style.css
 └── templates/
@@ -64,6 +89,165 @@ greencampus-plus/
     └── impact.html
 ```
 
-## Demo presentation
+The `instance/` directory and SQLite database are created automatically when the application initializes. They are runtime files rather than source-code files.
 
-Select **Load demo data** on the dashboard to add a few labeled sample readings, including one reading that triggers a water alert. Loading it more than once will not create duplicate demo rows. The records are saved in the same history table as real records, but have their own visible **DEMO** label and a separate dashboard count.
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Python 3.9 or newer, subject to compatibility with the installed dependencies.
+- Git, if you intend to clone the repository.
+- A modern web browser.
+- An internet connection for CDN-hosted charts and optional fonts.
+
+### 1. Clone the repository
+
+Replace the placeholder with your GitHub repository URL.
+
+```bash
+git clone <YOUR_REPOSITORY_URL>
+cd GreenCampusPlus
+```
+
+If you already have the project locally, open its folder in VS Code instead.
+
+### 2. Create a virtual environment
+
+**Windows PowerShell:**
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+If PowerShell blocks activation, run the following in the same terminal and activate again:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+```
+
+Alternatively, use the environment's Python executable directly without activating it.
+
+### 3. Install dependencies
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+### 4. Start the application
+
+```powershell
+python app.py
+```
+
+### 5. Open GreenCampus Plus
+
+Visit:
+
+```text
+http://127.0.0.1:5000
+```
+
+Stop the development server with `Ctrl + C`.
+
+---
+
+## 📂 Importing the Historical Dataset
+
+Keep the supplied workbook in the project root:
+
+`Campus_Sustainability_Dataset_1000 (1).xlsx`
+
+Then:
+
+1. Start GreenCampus Plus.
+2. Open the dashboard.
+3. Select **Import workbook dataset**.
+4. Review the import summary and skipped-row explanations.
+5. Open Resource History to inspect imported records and their metadata.
+
+Each eligible source row produces separate electricity, water, and waste records, subject to validation. The import process is designed to avoid duplicate entries when the same source rows are imported again.
+
+**Data integrity:** Imported workbook values are explicitly identified as dataset records. They should not be interpreted as verified measurements from an actual campus.
+
+## 🎬 Hackathon Demo Workflow
+
+Use this sequence to demonstrate the application during evaluation:
+
+1. **Load demo data** to populate the dashboard with labeled sample readings.
+2. **Explore resource totals** and daily consumption trends.
+3. **Trigger a resource alert** using the demonstration reading that exceeds the configured water threshold.
+4. **Review recommendations** and explain how they relate to the recorded resource usage.
+5. **Compare two periods** to inspect increases or decreases in consumption.
+6. **Demonstrate AutoPilot** to show how periodic simulated readings appear in the dashboard and history.
+7. **Inspect source labels** to distinguish DEMO, SIMULATED, DATASET, and MEASURED records.
+
+Loading demonstration data repeatedly should not create duplicate demo records.
+
+---
+
+## 📐 Detection Rules and Calculation Limitations
+
+GreenCampus Plus uses straightforward, rule-based logic to keep its results explainable.
+
+| Resource | Demonstration alert threshold |
+|---|---:|
+| Electricity | Above 1,000 kWh per record |
+| Water | Above 10,000 litres per record |
+| Waste | Above 100 kg per record |
+
+These thresholds are fixed demonstration values, not validated campus-specific targets. An alert indicates that a reading exceeds a configured threshold; it does not independently prove that waste occurred.
+
+### Sustainability score
+
+The dashboard starts with a score of 100 and subtracts an equal share for each record that exceeds its resource threshold. This score is an engagement indicator, not a scientific sustainability rating.
+
+### Period comparison
+
+The application compares saved consumption totals across selected periods and reports percentage changes. A percentage increase or decrease describes the recorded data; it does not establish the cause of that change.
+
+### Environmental impact
+
+Where imported metadata includes estimated CO₂ values, those values retain their source context. The application does not claim that its usage comparisons represent verified emissions reductions or actual financial savings.
+
+### Data sources
+
+Resource totals may combine MEASURED, DEMO, SIMULATED, and DATASET records. Use source filters where available to compare like with like.
+
+---
+
+## 🔐 Data and Security Notes
+
+- Keep secrets, credentials, and environment-specific configuration out of version control.
+- Do not commit a local database containing private or sensitive information.
+- Use the Flask development server only for local development and demonstrations.
+- Validate imported data and user inputs before relying on them for decisions.
+- Treat simulated and sample readings as demonstration data rather than operational measurements.
+
+## 🔮 Future Enhancements
+
+Potential next steps include:
+
+- Integration with verified smart-meter and IoT sensor data.
+- Campus-specific resource baselines and configurable alert thresholds.
+- Building-level dashboards and role-based access.
+- Validated emission factors and documented environmental calculations.
+- CSV and PDF reporting.
+- Action tracking to evaluate whether recommended interventions reduce subsequent consumption.
+
+These are proposed enhancements unless already implemented.
+
+## 👥 Team and Contributions
+
+Developed collaboratively for **KAUSHAL 8.0 — PS-04: Sustainable Tech Without Limits**.
+
+Add team members, GitHub profiles, and individual contributions here.
+
+## 📄 License
+
+Specify the project's license before distributing the code publicly. If the repository does not yet have a license, its reuse permissions should not be assumed.
+
+---
+
+**GreenCampus Plus — Measure resource use. Identify opportunities. Support better decisions.**
